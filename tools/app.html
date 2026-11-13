@@ -364,6 +364,7 @@ details.more{margin-top:28px;border-top:1px solid var(--line);padding-top:12px}d
 .plain{font-size:15px;line-height:1.5;margin:12px 0 4px;max-width:85ch}
 .mcheck{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}.mcrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:6px}.mcrow>div{display:flex;flex-direction:column;gap:1px;font-size:12px}.mcrow span{color:var(--dim);font-size:11px}.mcrow b{font-size:15px}.mcrow i{font-style:normal;font-size:11px;font-family:var(--mono)}.mcrow .fin b{color:var(--pos)}
 .explain{border:1px solid var(--line);border-left:3px solid var(--info);border-radius:8px;padding:12px 14px;background:var(--panel);font-size:13px;margin:12px 0 0;max-width:95ch}.explain b{color:var(--fg)}
+.consider{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line2)}.consider .d1w{margin-top:6px;font-size:12.5px;color:var(--dim)}
 </style>
 
 <header class="top">
@@ -1159,7 +1160,7 @@ function moneyPlain(g){const sp=g.splits||{};if(sp.betsH==null)return null;const
  if(gap>=10)return {side:monS,txt:`Sharp money: ${pubT.ab} has ${bp}% of bets and even more of the money (${mp}%) — the big bettors agree with the public here.${rec}`,short:`the big money is on ${monT.ab}`};
  if(gap<=-10)return {side:null,txt:`Betting: ${bp}% of bets are on ${pubT.ab} but only ${mp}% of the money — lots of small bets; the bigger bettors are less sure.${rec}`,short:"small bettors only"};
  return {side:monS,txt:`Betting: ${pubT.ab} has ${bp}% of bets and ${mp}% of the money. Small and big bettors agree, so no sharp signal either way.${rec}`,short:`the money is on ${monT.ab}`}}
-function plainSummary(g,c,R){const pros=R.filter(r=>r.dir>0&&r.short).map(r=>r.short),cons=R.filter(r=>r.dir<0&&r.short).map(r=>r.short);
+function plainSummary(g,c,R){const pros=R.filter(r=>r.dir>0&&r.short&&!r.minor).map(r=>r.short),cons=R.filter(r=>r.dir<0&&r.short&&!r.minor).map(r=>r.short);
  let t;if(c.tier==="PASS")t=`No bet. The line is close to fair${cons.length&&pros.length?` and the reasons cut both ways (${pros[0]}, but ${cons[0]})`:""}, so the juice would eat any small edge.`;
  else t=`We'd bet ${c.label.replace(/ \(.*/,"")} for ${c.u} unit${c.u===1?"":"s"}${pros.length?` because ${pros.slice(0,2).join(" and ")}`:""}.${cons.length?` Risk: ${cons[0]}.`:""} We need it to win ${pct(c.be,0)} of the time to profit; we estimate ${pct(c.p,0)}.`;
  return `<p class="plain">${esc(t)}</p>`}
@@ -1182,18 +1183,18 @@ function matchupKeys(g){const lg=g.league,A=team(lg,g.away),H=team(lg,g.home),sa
  else if(lg==="nhl"){cmp("Power play %","Power play",(T,O)=>`${T.ab} converts more often with the extra man.`,id,.2);cmp("Penalty kill %","Penalty kill",(T,O)=>`${T.ab} kills penalties better.`,id,.05);cmp("Shots","Shot volume",(T,O)=>`${T.ab} generates more shots per game.`,id,.08);cmp("Goals allowed","Defense/goaltending",(T,O)=>`${T.ab} allows fewer goals.`,id,.1)}
  return out.sort((a,b)=>b.rel-a.rel)}
 function decWhy(g,c,d){const A=gName(g,"a"),H=gName(g,"h"),o=g.odds||{},lg=g.league;const isPass=c.tier==="PASS";const f=fairOf(g,c);const P=d.P;
- const R=[];const tag=(dir,txt,short)=>R.push({dir,txt,short});const forPick=side=>c.mk==="total"?0:(side===c.side?1:-1);
+ const R=[];const tag=(dir,txt,short,minor)=>R.push({dir,txt,short,minor:!!minor});const forPick=side=>c.mk==="total"?0:(side===c.side?1:-1);
  // 1 line value
- R.push({dir:!isPass&&f.edge!=null&&f.edge>=.5?1:0,short:f.edge!=null?`the line is ${f.edge.toFixed(1)} pts off our number`:"our price",txt:`Our line ${f.txt} vs the book's ${f.book}${!isPass&&f.edge!=null?` → ${f.edge.toFixed(1)} pts of value on ${c.label.replace(/ \(.*/,"")}`:isPass?" → too close to bet":""}.`});
+ R.push({dir:!isPass&&(f.edge==null||f.edge>=.5)?1:0,short:f.edge!=null?`our number is ${f.edge.toFixed(1)} pts better than the book's`:`${c.label.replace(/ \(.*/,"").replace(/ [-+]\d+$/,"")} wins this more often than the price implies`,txt:`Our line ${f.txt} vs the book's ${f.book}${!isPass&&f.edge!=null?` → ${f.edge.toFixed(1)} pts of value on ${c.label.replace(/ \(.*/,"")}`:isPass?" → too close to bet":""}.`});
  // 2 key players
- if(c.mk!=="total"){const IS=injShift(g);for(const [side,list,t] of [["away",IS.a,A],["home",IS.h,H]])list.slice(0,2).forEach(x=>tag(-forPick(side),x.role==="starting QB"&&x.backup?`Backup QB: ${x.backup} is expected to start for ${t.ab} — ${x.name} is ${x.status.toLowerCase()}. Worth about ${x.pts.toFixed(1)} pts.`:`Key injury: ${x.name} (${x.role}, ${t.ab}) is ${x.status.toLowerCase()}${x.backup?`; ${x.backup} steps in`:""}${x.pts?` — worth about ${x.pts>=1?x.pts.toFixed(1)+" pts":Math.round(x.pts*100)/100+" goals"}`:""}.`,x.role==="starting QB"&&x.backup?`${t.ab} starts backup QB ${x.backup}`:`${t.ab} is missing ${x.name}`))}
+ if(c.mk!=="total"){const IS=injShift(g);for(const [side,list,t] of [["away",IS.a,A],["home",IS.h,H]])list.slice(0,2).forEach(x=>tag(-forPick(side),x.role==="starting QB"&&x.backup?`Backup QB: ${x.backup} is expected to start for ${t.ab} — ${x.name} is ${x.status.toLowerCase()}. Worth about ${x.pts.toFixed(1)} pts.`:`Key injury: ${x.name} (${x.role}, ${t.ab}) is ${x.status.toLowerCase()}${x.backup?`; ${x.backup} steps in`:""}${x.pts?` — worth about ${["nhl","soccer","mlb"].includes(lg)?Math.round(x.pts*100)/100+(lg==="mlb"?" runs":" goals"):x.pts.toFixed(1)+" pts"}`:""}.`,x.role==="starting QB"&&x.backup?`${t.ab} starts backup QB ${x.backup}`:`${t.ab} is missing ${x.name}`,!(x.role==="starting QB"||x.role==="starting goalie"||x.role==="top scorer")))}
  // 3 matchup
  const th=P.th,ta=P.ta;if(th&&ta&&th.ppg!=null&&ta.ppg!=null&&th.last.length>=5&&ta.last.length>=5){const hm=th.ppg-th.papg,am=ta.ppg-ta.papg;const better=hm>=am?"home":"away";const u=lg==="nhl"||lg==="soccer"?"goals":"pts";
   tag(c.mk==="total"?0:forPick(better),`Matchup: ${H.ab} ${th.ppg.toFixed(1)} scored / ${th.papg.toFixed(1)} allowed vs ${A.ab} ${ta.ppg.toFixed(1)} / ${ta.papg.toFixed(1)} (last ${Math.min(th.last.length,ta.last.length)} games) — ${(better==="home"?H:A).ab} is ${Math.abs(hm-am).toFixed(1)} ${u} per game better.`,`${(better==="home"?H:A).ab} has been the better team lately`)}
  // matchup keys from season team stats
- for(const k of matchupKeys(g).slice(0,2))tag(c.mk==="total"?0:forPick(k.side),k.txt,k.short);
+ for(const k of matchupKeys(g).slice(0,2))tag(c.mk==="total"?0:forPick(k.side),k.txt,k.short,k.rel<.25);
  // 4 home edge
- if(c.mk!=="total"&&HFA[lg])tag(forPick("home"),`Home ${lg==="nfl"||lg==="ncaaf"||lg==="soccer"?"field":lg==="nhl"?"ice":"court"}: worth about ${HFA[lg]} ${lg==="nhl"||lg==="soccer"||lg==="mlb"?"goals":"pts"} to ${H.ab} (already in our line).`);
+ if(c.mk!=="total"&&HFA[lg])tag(forPick("home"),`Home ${lg==="nfl"||lg==="ncaaf"||lg==="soccer"?"field":lg==="nhl"?"ice":"court"}: worth about ${HFA[lg]} ${lg==="nhl"||lg==="soccer"||lg==="mlb"?"goals":"pts"} to ${H.ab} (already in our line).`,null,true);
  // 5 money
  const sp=g.splits||{},cal=calib();if(c.mk!=="total"&&sp.betsH!=null){const mr=moneyPlain(g);if(mr)tag(mr.side?forPick(mr.side):0,mr.txt,mr.short)}
  if(c.mk==="total"&&sp.betsO!=null)tag(0,`Betting: ${Math.max(sp.betsO,100-sp.betsO)}% of bets on the ${sp.betsO>=50?"over":"under"}.`);
@@ -1209,7 +1210,7 @@ function decisionPanel(g){const d=decide(g),c=d.final,A=gName(g,"a"),H=gName(g,"
  return `<section class="sec"><div class="d1 ${c.tier.toLowerCase()}">
  <div class="d1h"><div><span class="eyebrow">Our pick</span><div class="dword" style="${isPass?"":"color:"+(pickT?pickT.c:"var(--fg)")}">${isPass?"No bet":esc(c.label)}</div><div class="dmeta">${isPass?`Closest side: ${esc(c.label)} — not enough edge to beat the juice.`:`<b class="tier ${c.tier==="BET"?"bet":"lean"}">${c.tier} ${c.u}u</b> ${pct(c.p,0)} to win · ${pct(c.be,0)} needed`}</div></div></div>
 ${plainSummary(g,c,R)}${c.mk==="spread"?modelCheck(g,c,d):""}
- <ul class="d1w">${R.map(r=>`<li>${ic(r.dir)}<span>${esc(r.txt)}</span></li>`).join("")}</ul>
+ <ul class="d1w">${R.filter(r=>!r.minor).map(r=>`<li>${ic(r.dir)}<span>${esc(r.txt)}</span></li>`).join("")}</ul>${R.some(r=>r.minor)?`<div class="consider"><span class="eyebrow">Something to consider</span><ul class="d1w">${R.filter(r=>r.minor).map(r=>`<li>${ic(r.dir)}<span>${esc(r.txt)}</span></li>`).join("")}</ul><p class="muted" style="font-size:11px;margin:4px 0 0">Smaller factors: worth knowing, but not why we're making this pick.</p></div>`:""}
  ${others.length?`<p class="d1o mono">Also: ${others.map(x=>esc(x.label)+" ("+x.tier+" "+x.u+"u)").join(" · ")}</p>`:""}
  <p class="muted" style="font-size:11px;margin:8px 0 0">✓ helps the pick · ✗ works against it. Bet sizes: 1u at +3% expected value, 2u at +5%, 3u at +6.5%. Signal weights are re-learned from this app's graded games.</p></div></section>`}
 function bestBets(dayK,sp){const out=[];for(const g of S.games){if(sp&&sp!=="all"&&g.league!==sp)continue;if(!ORDER.includes(g.league))continue;if(isDone(g)||isLive(g))continue;if(dayK&&dayKey(g.start)!==dayK)continue;const d=decide(g);if(d.final&&d.final.tier!=="PASS")out.push({g,c:d.final,d})}
