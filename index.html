@@ -5,7 +5,8 @@ function coll(c){var q={orderBy:function(){return q},limit:function(){return q},
 var deny=function(){return Promise.reject({code:"permission-denied"})};
 var db={collection:coll,doc:function(p){var a=p.split("/"),c=a.slice(0,-1).join("/"),id=a[a.length-1];return {onSnapshot:function(fn){var f=function(){var v=DATA[c]&&DATA[c][id];fn({exists:!!v,data:function(){return v}})};cbs.push(f);ready.then(f);return function(){}},set:deny,update:deny,delete:deny}}};
 window.claude={use:function(n){return Promise.resolve(n==="db"?db:null)}};window.PUBLIC_SITE=true})();
-</script></head><body style="margin:0"><div style="background:#111113;border-bottom:1px solid #26262b;color:#a1a1a6;font:12px IBM Plex Sans,sans-serif;text-align:center;padding:6px 12px">Live board · data refreshes hourly · picks are for information, not financial advice</div><title>NoFilmStudy</title>
+</script></head><body style="margin:0"><div style="background:#111113;border-bottom:1px solid #26262b;color:#a1a1a6;font:12px IBM Plex Sans,sans-serif;text-align:center;padding:6px 12px">Live board · data refreshes hourly · picks are for information, not financial advice</div>
+<title>NoFilmStudy</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -1435,4 +1436,5 @@ document.addEventListener("keydown",e=>{if(e.key==="/"&&document.activeElement.t
 
 applySettings();if(!location.hash&&SET().start!=="board")location.hash="#"+SET().start;route();paintFeed();paintSlip();initDb();
 </script>
+
 </body></html>
